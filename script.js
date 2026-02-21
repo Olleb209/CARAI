@@ -1,33 +1,40 @@
 const c = document.getElementById("canva");
 const ctx = c.getContext("2d");
 
-// Game State
 let rot = 0;
 let player_pos = { x: 400, y: 300 };
 let player_vel = { x: 0, y: 0 };
 let mouse_pos = { x: 0, y: 0 };
 
-// Configuration
-const player_color = "rgb(255, 0, 0)";
-const player_dims = { w: 15, h: 30 };
-const accel = 250;
-const drift_factor = 0.97;
-const drag_factor = 0.999;
+let player_color = "rgb(255, 0, 0)";
+let player_dims = { w: 15, h: 30 };
+let accel = 250;
+let drift_factor = 0.99;
+let drag_factor = 0.999;
 
-// Borders
+function updateValues() {
+    const newAccel = document.getElementById("accelInput").value;
+    const newDrift = document.getElementById("driftInput").value;
+    const newDrag = document.getElementById("dragInput").value;
+
+    accel = parseInt(newAccel);
+    drift_factor = parseFloat(newDrift);
+    drag_factor = parseFloat(newDrag);
+
+    console.log(`Updated! Accel: ${accel}, Drift: ${drift_factor}, Drag: ${drag_factor}`);
+}
+
 let outer_border = [];
 let inner_border = [];
 let isRecordingInner = false; 
 
 const keys = {};
 
-// --- Input Listeners ---
 window.addEventListener("keydown", e => {
     keys[e.code] = true;
     if (e.code === "KeyR") { outer_border = []; inner_border = []; }
     if (e.code === "KeyT") isRecordingInner = !isRecordingInner;
     
-    // Undo last point (Ctrl + Z)
     if (e.code === "KeyZ" && e.ctrlKey) {
         if (isRecordingInner) inner_border.pop();
         else outer_border.pop();
@@ -49,7 +56,6 @@ window.addEventListener("mousedown", e => {
     }
 });
 
-// --- Math Helpers ---
 function dot(p1, p2) { return p1.x * p2.x + p1.y * p2.y; }
 
 function rotate(x, y, degrees) {
@@ -88,7 +94,6 @@ function lineRectIntersect(p1, p2, rectPos, rectDims, rectRot) {
     return t0 <= t1;
 }
 
-// --- Systems ---
 function drawPath(points, color = "white", isDashed = false) {
     if (points.length === 0) return;
     ctx.strokeStyle = color;
@@ -112,7 +117,6 @@ function Rect(x, y, width, height, degrees, color) {
 }
 
 async function start() {
-    // Basic default track
     outer_border = generateCirclePoints(c.width / 2, c.height / 2, 250, 60);
     inner_border = generateCirclePoints(c.width / 2, c.height / 2, 100, 60);
     player_pos = { x: c.width / 2 + 175, y: c.height / 2 };
@@ -124,7 +128,6 @@ function loop(time) {
     last_time = time;
     if (dt > 0.1) dt = 0.1;
 
-    // Physics
     let forwardDir = rotate(0, -1, rot);
     let rightDir = rotate(forwardDir.x, forwardDir.y, 90);
     let magnitude = Math.sqrt(player_vel.x ** 2 + player_vel.y ** 2);
@@ -145,7 +148,6 @@ function loop(time) {
     player_pos.x += player_vel.x * dt;
     player_pos.y += player_vel.y * dt;
 
-    // Collision
     const collide = (border) => {
         for (let i = 0; i < border.length; i++) {
             if (lineRectIntersect(border[i], border[(i + 1) % border.length], player_pos, player_dims, rot)) return true;
@@ -158,14 +160,12 @@ function loop(time) {
         player_pos.x += player_vel.x * dt * 8; player_pos.y += player_vel.y * dt * 8;
     }
 
-    // Rendering
     ctx.fillStyle = "black";
     ctx.fillRect(0, 0, c.width, c.height);
 
     drawPath(outer_border, "white");
     drawPath(inner_border, "#00ff00");
 
-    // UI & Drawing Preview
     ctx.fillStyle = "white";
     ctx.font = "14px Arial";
     ctx.fillText(`Mode: ${isRecordingInner ? "INNER (Green)" : "OUTER (White)"}`, 10, 20);
